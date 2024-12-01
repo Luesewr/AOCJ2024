@@ -11,7 +11,7 @@ public class Day1 extends Day {
     public void part1() {
         Scanner scanner = getScanner("day1.txt");
 
-        Pair<LocationList, LocationList> lists = LocationList.parseDoubleList((scanner));
+        Pair<LocationList, LocationList> lists = LocationList.parseDoubleLocationList((scanner));
 
         int difference = lists.getLeft().getLocationListDifference(lists.getRight());
 
@@ -22,9 +22,9 @@ public class Day1 extends Day {
     public void part2() {
         Scanner scanner = getScanner("day1.txt");
 
-        Pair<LocationList, LocationList> lists = LocationList.parseDoubleList((scanner));
+        Pair<LocationList, LocationList> lists = LocationList.parseDoubleLocationList((scanner));
 
-        int similarity = lists.getLeft().getLocationSimilarity(lists.getRight());
+        int similarity = lists.getLeft().getLocationListSimilarity(lists.getRight());
 
         System.out.println(similarity);
     }
@@ -48,12 +48,14 @@ public class Day1 extends Day {
             this.sortList();
             other.sortList();
 
-            assert this.getLocationIDs().size() == other.getLocationIDs().size();
+            List<Integer> thisLocationList = this.getLocationIDs(), otherLocationList = other.getLocationIDs();
+
+            assert thisLocationList.size() == otherLocationList.size();
 
             int totalDifference = 0;
 
             for (int i = 0, size = getLocationIDs().size(); i < size; i++) {
-                int difference = Math.abs(this.getLocationIDs().get(i) - other.getLocationIDs().get(i));
+                int difference = Math.abs(thisLocationList.get(i) - otherLocationList.get(i));
 
                 totalDifference += difference;
             }
@@ -61,28 +63,30 @@ public class Day1 extends Day {
             return totalDifference;
         }
 
-        private int getLocationSimilarity(@NotNull LocationList other) {
+        private int getLocationListSimilarity(@NotNull LocationList other) {
             this.sortList();
             other.sortList();
 
+            List<Integer> otherLocationList = other.getLocationIDs();
+            int otherSize = otherLocationList.size();
+
             int rightIndex = 0;
             int rightCount = 1;
-            int otherSize = other.getLocationIDs().size();
 
             int similarity = 0;
 
             for (Integer locationID : this.getLocationIDs()) {
-                while (rightIndex < otherSize && locationID > other.getLocationIDs().get(rightIndex)) {
+                while (rightIndex < otherSize && locationID > otherLocationList.get(rightIndex)) {
                     rightIndex++;
                     rightCount = 1;
                 }
 
-                while (rightIndex + 1 < otherSize && locationID >= other.getLocationIDs().get(rightIndex + 1)) {
+                while (rightIndex + 1 < otherSize && locationID >= otherLocationList.get(rightIndex + 1)) {
                     rightIndex++;
                     rightCount++;
                 }
 
-                if (rightIndex < otherSize && locationID >= other.getLocationIDs().get(rightIndex)) {
+                if (rightIndex < otherSize && locationID >= otherLocationList.get(rightIndex)) {
                     similarity += locationID * rightCount;
                 }
             }
@@ -94,7 +98,7 @@ public class Day1 extends Day {
             return this.locationIDs;
         }
 
-        private static Pair<LocationList, LocationList> parseDoubleList(@NotNull Scanner scanner) {
+        private static Pair<LocationList, LocationList> parseDoubleLocationList(@NotNull Scanner scanner) {
             int index = 0;
 
             LocationList locationList1 = new LocationList(), locationList2 = new LocationList();
