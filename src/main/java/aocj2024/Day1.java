@@ -1,17 +1,18 @@
 package aocj2024;
 
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Scanner;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.Stream;
 import org.apache.commons.lang3.tuple.Pair;
 import org.jetbrains.annotations.NotNull;
 
 public class Day1 extends Day {
     @Override
     public void part1() {
-        Scanner scanner = getScanner("day1.txt");
+        Stream<String> lines = getLinesFromFile("day1.txt");
 
-        Pair<LocationList, LocationList> lists = LocationList.parseDoubleLocationList((scanner));
+        Pair<LocationList, LocationList> lists = LocationList.parseDoubleLocationList(lines);
 
         int difference = lists.getLeft().getLocationListDifference(lists.getRight());
 
@@ -20,41 +21,24 @@ public class Day1 extends Day {
 
     @Override
     public void part2() {
-        Scanner scanner = getScanner("day1.txt");
+        Stream<String> lines = getLinesFromFile("day1.txt");
 
-        Pair<LocationList, LocationList> lists = LocationList.parseDoubleLocationList((scanner));
+        Pair<LocationList, LocationList> lists = LocationList.parseDoubleLocationList(lines);
 
         int similarity = lists.getLeft().getLocationListSimilarity(lists.getRight());
 
         System.out.println(similarity);
     }
 
-    private static class LocationList {
-        private final List<Integer> locationIDs;
-
-        private LocationList() {
-            this.locationIDs = new ArrayList<>();
-        }
-
-        private void addLocationID(@NotNull Integer locationID) {
-            this.locationIDs.add(locationID);
-        }
-
-        private void sortList() {
-            this.locationIDs.sort(Integer::compareTo);
-        }
-
+    private record LocationList(List<Integer> locationIDs) {
         private int getLocationListDifference(@NotNull LocationList other) {
-            this.sortList();
-            other.sortList();
-
-            List<Integer> thisLocationList = this.getLocationIDs(), otherLocationList = other.getLocationIDs();
+            List<Integer> thisLocationList = this.locationIDs, otherLocationList = other.locationIDs;
 
             assert thisLocationList.size() == otherLocationList.size();
 
             int totalDifference = 0;
 
-            for (int i = 0, size = getLocationIDs().size(); i < size; i++) {
+            for (int i = 0, size = locationIDs.size(); i < size; i++) {
                 int difference = Math.abs(thisLocationList.get(i) - otherLocationList.get(i));
 
                 totalDifference += difference;
@@ -64,10 +48,7 @@ public class Day1 extends Day {
         }
 
         private int getLocationListSimilarity(@NotNull LocationList other) {
-            this.sortList();
-            other.sortList();
-
-            List<Integer> otherLocationList = other.getLocationIDs();
+            List<Integer> otherLocationList = other.locationIDs;
             int otherSize = otherLocationList.size();
 
             int rightIndex = 0;
@@ -75,7 +56,7 @@ public class Day1 extends Day {
 
             int similarity = 0;
 
-            for (Integer locationID : this.getLocationIDs()) {
+            for (Integer locationID : this.locationIDs) {
                 while (rightIndex < otherSize && locationID > otherLocationList.get(rightIndex)) {
                     rightIndex++;
                     rightCount = 1;
@@ -94,26 +75,30 @@ public class Day1 extends Day {
             return similarity;
         }
 
-        private List<Integer> getLocationIDs() {
-            return this.locationIDs;
-        }
+        private static Pair<LocationList, LocationList> parseDoubleLocationList(@NotNull Stream<String> lines) {
+            Pattern pattern = Pattern.compile("(\\d+)\\s+(\\d+)");
 
-        private static Pair<LocationList, LocationList> parseDoubleLocationList(@NotNull Scanner scanner) {
-            int index = 0;
+            List<Pair<String, String>> pairs = lines.map(pattern::matcher)
+                    .filter(Matcher::find)
+                    .map(matcher -> Pair.of(matcher.group(1), matcher.group(2)))
+                    .toList();
 
-            LocationList locationList1 = new LocationList(), locationList2 = new LocationList();
+            List<Integer> locations1 = pairs
+                    .stream()
+                    .map(Pair::getLeft)
+                    .map(Integer::parseInt)
+                    .sorted()
+                    .toList();
 
-            while (scanner.hasNextInt()) {
-                int locationID = scanner.nextInt();
+            List<Integer> locations2 = pairs
+                    .stream()
+                    .map(Pair::getRight)
+                    .map(Integer::parseInt)
+                    .sorted()
+                    .toList();
 
-                if (index % 2 == 0) {
-                    locationList1.addLocationID(locationID);
-                } else {
-                    locationList2.addLocationID(locationID);
-                }
-
-                index++;
-            }
+            LocationList locationList1 = new LocationList(locations1);
+            LocationList locationList2 = new LocationList(locations2);
 
             return Pair.of(locationList1, locationList2);
         }

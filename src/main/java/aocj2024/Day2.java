@@ -2,45 +2,34 @@ package aocj2024;
 
 import java.util.Arrays;
 import java.util.List;
-import java.util.Objects;
-import java.util.Scanner;
+import java.util.stream.Stream;
 
 public class Day2 extends Day {
     @Override
     public void part1() {
-        Scanner scanner = getScanner("day2.txt");
-        int safeReports = 0;
+        Stream<String> lines = getLinesFromFile("day2.txt");
 
-        while (scanner.hasNextLine()) {
-            String line = scanner.nextLine();
-            Report report = Report.parseReport(line);
-            if (report.isSafe()) safeReports += 1;
-        }
+        long safeReports = lines
+                .map(Report::parseReport)
+                .filter(Report::isSafe)
+                .count();
 
         System.out.println(safeReports);
     }
 
     @Override
     public void part2() {
-        Scanner scanner = getScanner("day2.txt");
-        int safeReports = 0;
+        Stream<String> lines = getLinesFromFile("day2.txt");
 
-        while (scanner.hasNextLine()) {
-            String line = scanner.nextLine();
-            Report report = Report.parseReport(line);
-            if (report.isTolerateSafe()) safeReports += 1;
-        }
+        long safeReports = lines
+                .map(Report::parseReport)
+                .filter(Report::isTolerateSafe)
+                .count();
 
         System.out.println(safeReports);
     }
 
-    private static final class Report {
-        private final List<Level> levels;
-
-        private Report(List<Level> levels) {
-            this.levels = levels;
-        }
-
+    private record Report(List<Level> levels) {
         private boolean isSafe() {
             boolean safe = true;
             boolean increasing = true, decreasing = true;
@@ -97,14 +86,6 @@ public class Day2 extends Day {
                     .map(Level::parseLevel)
                     .toList();
             return new Report(levels);
-        }
-
-        @Override
-        public boolean equals(Object obj) {
-            if (obj == this) return true;
-            if (obj == null || obj.getClass() != this.getClass()) return false;
-            var that = (Report) obj;
-            return Objects.equals(this.levels, that.levels);
         }
     }
 

@@ -1,22 +1,32 @@
 package aocj2024;
 
-import java.io.FileNotFoundException;
-import java.net.URISyntaxException;
-import java.net.URL;
-import java.nio.file.Paths;
-import java.util.Scanner;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.Reader;
+import java.io.UncheckedIOException;
+import java.nio.charset.StandardCharsets;
+import java.util.stream.Stream;
 
 public abstract class Day {
     public abstract void part1();
 
     public abstract void part2();
 
-    public Scanner getScanner(String filename) {
-        try {
-            URL resource = getClass().getResource("/" + filename);
-            return new Scanner(Paths.get(resource.toURI()).toFile());
-        } catch (FileNotFoundException | URISyntaxException e) {
-            return null;
-        }
+    public Stream<String> getLinesFromFile(String filename) {
+        InputStream resource = getClass().getResourceAsStream("/" + filename);
+
+        assert resource != null;
+
+        Reader reader = new InputStreamReader(resource, StandardCharsets.UTF_8);
+        BufferedReader bufferedReader = new BufferedReader(reader);
+        return bufferedReader.lines().onClose(() -> {
+            try {
+                bufferedReader.close();
+            } catch (IOException e) {
+                throw new UncheckedIOException(e);
+            }
+        });
     }
 }
