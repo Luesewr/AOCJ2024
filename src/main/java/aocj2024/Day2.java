@@ -2,14 +2,11 @@ package aocj2024;
 
 import java.util.Arrays;
 import java.util.List;
-import java.util.stream.Stream;
 
 public class Day2 extends Day {
     @Override
     public void part1() {
-        Stream<String> lines = getLinesFromFile("day2.txt");
-
-        long safeReports = lines
+        long safeReports = getLinesFromFile("day2.txt")
                 .map(Report::parseReport)
                 .filter(Report::isSafe)
                 .count();
@@ -19,9 +16,7 @@ public class Day2 extends Day {
 
     @Override
     public void part2() {
-        Stream<String> lines = getLinesFromFile("day2.txt");
-
-        long safeReports = lines
+        long safeReports = getLinesFromFile("day2.txt")
                 .map(Report::parseReport)
                 .filter(Report::isTolerateSafe)
                 .count();
