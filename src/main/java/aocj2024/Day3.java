@@ -39,10 +39,8 @@ public class Day3 extends Day {
 
         System.out.println(total);
     }
-    
-    private static class RunState {
-        private int total = 0;
-    }
+
+    private record RunState(int total) { }
     
     private static abstract class Instruction {
         int index;
@@ -53,15 +51,18 @@ public class Day3 extends Day {
         }
 
         private static int executeAll(List<Instruction> instructionSet) {
-            RunState state = new RunState();
+            RunState resultingState = instructionSet
+                    .stream()
+                    .reduce(
+                            new RunState(0),
+                            (state, instruction) -> instruction.execute(state),
+                            (oldState, newState) -> newState
+                    );
 
-            instructionSet
-                    .forEach(instruction -> instruction.execute(state));
-
-            return state.total;
+            return resultingState.total;
         }
         
-        protected abstract void execute(RunState state);
+        protected abstract RunState execute(RunState state);
         
         private static List<Instruction> parseAll(String input) {
             Pattern pattern = Pattern.compile("(mul|do|don't)\\(([0-9,]*?)\\)");
@@ -104,10 +105,10 @@ public class Day3 extends Day {
         }
 
         @Override
-        protected void execute(RunState state) {
-            if (disabled) return;
+        protected RunState execute(RunState state) {
+            if (disabled) return state;
 
-            state.total += left * right;
+            return new RunState(state.total + left * right);
         }
 
         @Override
@@ -131,10 +132,12 @@ public class Day3 extends Day {
         }
 
         @Override
-        protected void execute(RunState state) {
-            if (disabled) return;
+        protected RunState execute(RunState state) {
+            if (disabled) return state;
 
             MulInstruction.disabled = false;
+
+            return state;
         }
 
         @Override
@@ -151,10 +154,12 @@ public class Day3 extends Day {
         }
 
         @Override
-        protected void execute(RunState state) {
-            if (disabled) return;
+        protected RunState execute(RunState state) {
+            if (disabled) return state;;
 
             MulInstruction.disabled = true;
+
+            return state;
         }
 
         @Override
