@@ -100,7 +100,7 @@ public class Day4 extends Day {
 
         private List<List<FindResult>> getResults(String string, List<GridPointContainer> containers) {
             return containers.stream()
-                    .map(gridPointContainer -> gridPointContainer.findResults(string))
+                    .map(gridPointContainer -> gridPointContainer.findResult(string))
                     .collect(Collectors.toList());
         }
 
@@ -120,7 +120,7 @@ public class Day4 extends Day {
             this.gridPoints = gridPoints;
         }
 
-        private List<FindResult> findResults(String string) {
+        private List<FindResult> findResult(String string) {
             int resultLength = string.length();
             String reverseString = new StringBuilder(string).reverse().toString();
             return Stream.concat(
