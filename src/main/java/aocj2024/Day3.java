@@ -155,7 +155,7 @@ public class Day3 extends Day {
 
         @Override
         protected RunState execute(RunState state) {
-            if (disabled) return state;;
+            if (disabled) return state;
 
             MulInstruction.disabled = true;
 
