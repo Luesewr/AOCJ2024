@@ -123,14 +123,9 @@ public class Day4 extends Day {
         private List<FindResult> findResult(String string) {
             int resultLength = string.length();
             String reverseString = new StringBuilder(string).reverse().toString();
-            return Stream.concat(
-                    IntStream.rangeClosed(resultLength, gridPoints.size())
-                            .mapToObj(i -> new FindResult(gridPoints.subList(i - resultLength, i).toArray(GridPoint[]::new)))
-                            .filter(findResult -> findResult.toString().equals(string)),
-                    IntStream.rangeClosed(resultLength, gridPoints.size())
-                            .mapToObj(i -> new FindResult(gridPoints.subList(i - resultLength, i).toArray(GridPoint[]::new)))
-                            .filter(findResult -> findResult.toString().equals(reverseString))
-            ).collect(Collectors.toList());
+            return IntStream.rangeClosed(resultLength, gridPoints.size())
+                    .mapToObj(i -> new FindResult(gridPoints.subList(i - resultLength, i).toArray(GridPoint[]::new)))
+                    .filter(findResult -> findResult.toString().equals(string) || findResult.toString().equals(reverseString)).collect(Collectors.toList());
         }
 
         void add(GridPoint gridPoint) {
@@ -212,7 +207,8 @@ public class Day4 extends Day {
         }
     }
 
-    private record GridPoint(char character, Point point) { }
+    private record GridPoint(char character, Point point) {
+    }
 
     private record FindResult(GridPoint[] gridPoints) {
         @Override
