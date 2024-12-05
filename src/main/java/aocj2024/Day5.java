@@ -1,67 +1,110 @@
 package aocj2024;
 
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.stream.Collectors;
-import org.apache.commons.lang3.tuple.Pair;
 
 public class Day5 extends Day {
     @Override
     public void part1() {
         List<String> lines = getLinesFromFile("day5.txt").toList();
-        Map<Integer, Set<Integer>> shouldBeBefore = lines.stream()
-                .takeWhile(string -> !string.isEmpty())
-                .map(string -> string.split("\\|"))
-                .map(strings -> Pair.of(Integer.parseInt(strings[0]), Integer.parseInt(strings[1])))
-                .collect(Collectors.groupingBy(
-                        Pair::getLeft,
-                        Collectors.mapping(Pair::getRight, Collectors.toSet())
-                ));
 
-        int correctUpdates = lines.stream().dropWhile(string -> !string.isEmpty()).skip(1)
-                .takeWhile(string -> !string.isEmpty())
-                .map(string -> Arrays.stream(string.split(",")).map(Integer::parseInt).toList())
-                .filter(integers -> integers.stream()
-                        .allMatch(integer -> integers.stream()
-                                .takeWhile(i -> !Objects.equals(i, integer))
-                                .noneMatch(i -> shouldBeBefore.containsKey(integer) && shouldBeBefore.get(integer).contains(i))
-                        ))
-                .map(integers -> integers.get((integers.size() - 1) / 2))
+        List<PageList> pageLists = PageList.setupPageListsFromLines(lines);
+
+        int correctCount = pageLists.stream()
+                .filter(PageList::isCorrect)
+                .map(PageList::getMiddleValue)
                 .reduce(0, Integer::sum);
 
-        System.out.println(correctUpdates);
+        System.out.println(correctCount);
     }
 
     @Override
     public void part2() {
         List<String> lines = getLinesFromFile("day5.txt").toList();
-        Map<Integer, Set<Integer>> shouldBeBefore = lines.stream()
-                .takeWhile(string -> !string.isEmpty())
-                .map(string -> string.split("\\|"))
-                .map(strings -> Pair.of(Integer.parseInt(strings[0]), Integer.parseInt(strings[1])))
-                .collect(Collectors.groupingBy(
-                        Pair::getLeft,
-                        Collectors.mapping(Pair::getRight, Collectors.toSet())
-                ));
 
-        int correctedUpdates = lines.stream().dropWhile(string -> !string.isEmpty()).skip(1)
-                .takeWhile(string -> !string.isEmpty())
-                .map(string -> Arrays.stream(string.split(",")).map(Integer::parseInt).toList())
-                .filter(integers -> integers.stream()
-                        .anyMatch(integer -> integers.stream()
-                                .takeWhile(i -> !Objects.equals(i, integer))
-                                .anyMatch(i -> shouldBeBefore.containsKey(integer) && shouldBeBefore.get(integer).contains(i))
-                        ))
-                .map(integers -> integers.stream()
-                        .sorted((o1, o2) -> shouldBeBefore.containsKey(o1) && shouldBeBefore.get(o1).contains(o2) ? -1 : (
-                                shouldBeBefore.containsKey(o2) && shouldBeBefore.get(o2).contains(o1) ? 1 : 0
-                        )).collect(Collectors.toList()))
-                .map(integers -> integers.get((integers.size() - 1) / 2))
+        List<PageList> pageLists = PageList.setupPageListsFromLines(lines);
+
+        int correctedCount = pageLists.stream()
+                .filter(pageList -> !pageList.isCorrect())
+                .map(pageList -> pageList.pages.stream()
+                        .sorted()
+                        .toList()
+                )
+                .map(PageList::new)
+                .map(PageList::getMiddleValue)
                 .reduce(0, Integer::sum);
 
-        System.out.println(correctedUpdates);
+        System.out.println(correctedCount);
+    }
+
+    private record PageList(List<Page> pages) {
+        private static List<PageList> setupPageListsFromLines(List<String> lines) {
+            List<String> pageRuleStrings = lines.stream().takeWhile(string -> !string.isEmpty()).toList();
+            List<String> pageListsStrings = lines.stream().dropWhile(string -> !string.isEmpty()).skip(1).toList();
+
+            return PageList.parsePageLists(pageListsStrings, pageRuleStrings);
+        }
+
+        private static List<PageList> parsePageLists(List<String> pageListsStrings, List<String> pageRuleStrings) {
+            Map<String, Page> pageLookup = new HashMap<>();
+
+            List<PageList> pageLists = pageListsStrings.stream()
+                    .map(pageListString -> parsePageList(pageLookup, pageListString))
+                    .toList();
+
+            pageRuleStrings.stream()
+                    .map(string -> string.split("\\|"))
+                    .forEach(strings -> pageLookup.get(strings[0]).shouldBeBefore.add(pageLookup.get(strings[1])));
+
+            return pageLists;
+        }
+
+        private static PageList parsePageList(Map<String, Page> pageLookup, String pageListString) {
+            List<Page> pages = Arrays.stream(pageListString.split(","))
+                    .map(pageString -> Page.parsePage(pageLookup, pageString))
+                    .toList();
+            return new PageList(pages);
+        }
+
+        public boolean isCorrect() {
+            return this.pages.stream()
+                    .allMatch(page -> this.pages.stream()
+                            .takeWhile(innerPage -> !Objects.equals(innerPage, page))
+                            .noneMatch(page.shouldBeBefore::contains)
+                    );
+        }
+
+        public int getMiddleValue() {
+            return Integer.parseInt(this.pages.get((this.pages.size() - 1) / 2).value);
+        }
+    }
+
+    private record Page(String value, Set<Page> shouldBeBefore) implements Comparable<Page> {
+        private static Page parsePage(Map<String, Page> pageLookup, String pageString) {
+            return pageLookup.computeIfAbsent(pageString, value -> new Page(value, new HashSet<>()));
+        }
+
+        @Override
+        public int compareTo(Page o) {
+            return this.shouldBeBefore.contains(o) ? -1 : (shouldBeBefore.contains(this) ? 1 : 0);
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            Page page = (Page) o;
+            return Objects.equals(value, page.value);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(value);
+        }
     }
 }
