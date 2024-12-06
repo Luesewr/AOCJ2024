@@ -11,10 +11,6 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.apache.commons.lang3.tuple.Pair;
 
-// 684 too low
-// 396 too low
-// 1949 too high
-
 public class Day6 extends Day {
     @Override
     public void part1() {
@@ -34,9 +30,7 @@ public class Day6 extends Day {
 
     @Override
     public void part2() {
-        List<String> lines = getLinesFromFile("aoc06_input.txt").toList();
-//        List<String> lines = getLinesFromFile("day6.txt").toList();
-//        List<String> lines = getLinesFromFile("day6_sample.txt").toList();
+        List<String> lines = getLinesFromFile("day6.txt").toList();
 
         Laboratory laboratory = new Laboratory(lines);
         Point startingLocation = laboratory.findStartingLocation();
@@ -58,8 +52,8 @@ public class Day6 extends Day {
 
         private Laboratory(List<String> layout) {
             this.layout = layout;
-            this.width = findWidth();
-            this.height = findHeight();
+            this.width = layout.get(0).length();
+            this.height = layout.size();
             this.obstacles = readInObstacles();
         }
 
@@ -89,7 +83,7 @@ public class Day6 extends Day {
         public Set<Point> getTraverseLaboratoryLocations(Guard guard) {
             Set<Point> visitedLocations = new HashSet<>();
 
-            while (isGuardInBounds(guard)) {
+            while (guard.isInBounds(this)) {
                 visitedLocations.add(guard.location.getLocation());
 
                 if (obstacles.contains(guard.nextLocation())) {
@@ -104,19 +98,18 @@ public class Day6 extends Day {
 
         private Set<Point> getPossibleLoopingObstacles(Guard guard) {
             Set<Point> possibleObstacles = new HashSet<>();
-            Set<Pair<Point, Integer>> loopTriggerLocations = new HashSet<>();
+            Set<Point> visitedLocations = new HashSet<>();
 
-            while (isGuardInBounds(guard)) {
-                if (loopTriggerLocations.contains(Pair.of(guard.getLocation(), guard.getRight())) &&
-                        !guard.facesObstacle(obstacles)) {
-                    possibleObstacles.add(guard.nextLocation());
-                }
+            while (guard.isInBounds(this)) {
+                visitedLocations.add(guard.location);
 
                 if (guard.facesObstacle(obstacles)) {
-                    Guard reverseGuard = guard.getEvilClone();
-                    backtrackTriggerLocations(reverseGuard, loopTriggerLocations);
                     guard.turnRight();
                 } else {
+                    if (!visitedLocations.contains(guard.nextLocation()) && checkForLoop(guard)) {
+                        possibleObstacles.add(guard.nextLocation());
+                    }
+
                     guard.moveToNextLocation();
                 }
             }
@@ -124,38 +117,35 @@ public class Day6 extends Day {
             return possibleObstacles;
         }
 
-        private void backtrackTriggerLocations(Guard guard, Set<Pair<Point, Integer>> loopTriggerLocations) {
-            while (isGuardInBounds(guard) && !loopTriggerLocations.contains(Pair.of(guard.getLocation(), guard.getBehind()))) {
-                loopTriggerLocations.add(Pair.of(guard.getLocation(), guard.getBehind()));
+        private boolean checkForLoop(Guard originGuard) {
+            boolean looping = false;
 
-                if (guard.hasObstacleToRight(obstacles)) {
-                    guard.turnLeft();
-                    backtrackTriggerLocations(guard.getClone(), loopTriggerLocations);
-                    guard.turnRight();
-                }
+            obstacles.add(originGuard.nextLocation());
 
-                if (guard.facesObstacle(obstacles)) {
+            Guard guard = originGuard.getClone().turnRight();
+
+            Set<Pair<Point, Integer>> visitedSpots = new HashSet<>();
+
+            while (guard.isInBounds(this)) {
+                Pair<Point, Integer> spot = Pair.of(guard.getLocation(), guard.direction);
+
+                if (visitedSpots.contains(spot)) {
+                    looping = true;
                     break;
                 }
 
-                guard.moveToNextLocation();
+                visitedSpots.add(spot);
+
+                if (guard.facesObstacle(obstacles)) {
+                    guard.turnRight();
+                } else {
+                    guard.moveToNextLocation();
+                }
             }
-        }
 
-        private int findWidth() {
-            return this.layout.get(0).length();
-        }
+            obstacles.remove(originGuard.nextLocation());
 
-        private int findHeight() {
-            return this.layout.size();
-        }
-
-        private boolean isGuardInBounds(Guard guard) {
-            return isPointInBounds(guard.location);
-        }
-
-        private boolean isPointInBounds(Point point) {
-            return point.x >= 0 && point.x < this.width && point.y >= 0 && point.y < this.height;
+            return looping;
         }
     }
 
@@ -180,28 +170,13 @@ public class Day6 extends Day {
             this.direction = direction;
         }
 
-        private void turnRight() {
+        private Guard turnRight() {
             this.direction = getRight();
-        }
-
-        private void turnLeft() {
-            this.direction = getLeft();
-        }
-
-        private void turnAround() {
-            this.direction = getBehind();
+            return this;
         }
 
         private int getRight() {
             return (this.direction + 1) % 4;
-        }
-
-        private int getLeft() {
-            return (this.direction + 3) % 4;
-        }
-
-        private int getBehind() {
-            return (this.direction + 2) % 4;
         }
 
         private Point nextLocation() {
@@ -212,20 +187,6 @@ public class Day6 extends Day {
             return newLocation;
         }
 
-        private boolean hasObstacleToRight(Set<Point> obstacles) {
-            turnRight();
-            boolean hasObstacle = facesObstacle(obstacles);
-            turnLeft();
-            return hasObstacle;
-        }
-
-        private boolean hasObstacleToLeft(Set<Point> obstacles) {
-            turnLeft();
-            boolean hasObstacle = facesObstacle(obstacles);
-            turnRight();
-            return hasObstacle;
-        }
-
         private boolean facesObstacle(Set<Point> obstacles) {
             return obstacles.contains(nextLocation());
         }
@@ -234,12 +195,12 @@ public class Day6 extends Day {
             this.location = nextLocation();
         }
 
-        protected Guard getClone() {
-            return new Guard(getLocation(), direction);
+        private boolean isInBounds(Laboratory laboratory) {
+            return location.x >= 0 && location.x < laboratory.width && location.y >= 0 && location.y < laboratory.height;
         }
 
-        protected Guard getEvilClone() {
-            return new Guard(getLocation(), getBehind());
+        protected Guard getClone() {
+            return new Guard(getLocation(), direction);
         }
 
         private Point getLocation() {
