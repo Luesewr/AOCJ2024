@@ -1,110 +1,134 @@
 package aocj2024;
 
 import java.awt.Point;
-import java.util.Collection;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-import org.apache.commons.lang3.tuple.Pair;
+import java.util.stream.Stream;
 
 public class Day8 extends Day {
     @Override
     public void part1() {
         List<String> lines = getLinesFromFile("day8.txt").toList();
-
         int width = lines.get(0).length(), height = lines.size();
 
-        Map<Character, Set<Point>> antennas = IntStream.range(0, lines.size())
-                .mapToObj(stringIndex -> IntStream.range(0, lines.get(stringIndex).length())
-                        .filter(charIndex -> lines.get(stringIndex).charAt(charIndex) != '.')
-                        .mapToObj(charIndex -> Pair.of(
-                                lines.get(stringIndex).charAt(charIndex),
-                                new Point(charIndex, stringIndex)
-                        ))
-                )
-                .flatMap(Function.identity())
-                .collect(Collectors.groupingBy(
-                        Pair::getLeft,
-                        Collectors.mapping(Pair::getRight, Collectors.toSet())
-                ));
+        Stream<FrequencyContainer> antennaFrequencyContainers = FrequencyContainer.parseFromGrid(lines);
 
-        Set<Point> uniqueAntiNodes = antennas.values().stream()
-                .flatMap(antennasList -> antennasList.stream()
-                        .flatMap(point1 -> antennasList.stream()
-                                .filter(point2 -> !point1.equals(point2))
-                                .map(point2 ->
-                                    new Point(add(point2, difference(point1, point2))
-                                ))
-                        )
+        Set<Point> uniqueAntiNodeLocations = FrequencyContainer.getProjectedAntiNodes(
+                        antennaFrequencyContainers,
+                        () -> IntStream.of(1),
+                        width,
+                        height
                 )
-                .filter(point -> isInBounds(point, width, height))
+                .map(AntiNode::location)
                 .collect(Collectors.toSet());
 
-        System.out.println(uniqueAntiNodes.size());
+        System.out.println(uniqueAntiNodeLocations.size());
     }
 
     @Override
     public void part2() {
         List<String> lines = getLinesFromFile("day8.txt").toList();
-
         int width = lines.get(0).length(), height = lines.size();
 
-        Map<Character, List<Point>> antennas = IntStream.range(0, lines.size())
-                .mapToObj(stringIndex -> IntStream.range(0, lines.get(stringIndex).length())
-                        .filter(charIndex -> lines.get(stringIndex).charAt(charIndex) != '.')
-                        .mapToObj(charIndex -> Pair.of(
-                                lines.get(stringIndex).charAt(charIndex),
-                                new Point(charIndex, stringIndex)
-                        ))
-                )
-                .flatMap(Function.identity())
-                .collect(Collectors.groupingBy(
-                        Pair::getLeft,
-                        Collectors.mapping(Pair::getRight, Collectors.toList())
-                ));
+        Stream<FrequencyContainer> antennaFrequencyContainers = FrequencyContainer.parseFromGrid(lines);
 
-        Set<Point> uniqueAntiNodes = antennas.values().stream()
-                .flatMap(antennasList -> antennasList.stream()
-                        .flatMap(point1 -> antennasList.stream()
-                                .filter(point2 -> !point1.equals(point2))
-                                .flatMap(point2 -> IntStream.iterate(1, n -> n + 1)
-                                        .mapToObj(n -> new Point(add(point2, multiply(difference(point1, point2), n))))
-                                        .takeWhile(point -> isInBounds(point, width, height))
-                                )
-                        )
+        Set<Point> uniqueAntiNodeLocations = FrequencyContainer.getProjectedAntiNodes(
+                        antennaFrequencyContainers,
+                        () -> IntStream.iterate(0, n -> n + 1),
+                        width,
+                        height
                 )
+                .map(AntiNode::location)
                 .collect(Collectors.toSet());
 
-        uniqueAntiNodes.addAll(antennas.values().stream().flatMap(Collection::stream).toList());
-
-        System.out.println(uniqueAntiNodes.size());
+        System.out.println(uniqueAntiNodeLocations.size());
     }
 
-    private static Point difference(Point point1, Point point2) {
-        int dx = point2.x - point1.x;
-        int dy = point2.y - point1.y;
+    private record FrequencyContainer(char frequency, Set<Antenna> antennas) {
+        private Stream<AntiNode> projectAntiNodes(Supplier<IntStream> supplier, int width, int height) {
+            return antennas.stream()
+                    .flatMap(antenna1 -> antennas.stream()
+                            .filter(antenna2 -> !antenna1.equals(antenna2))
+                            .flatMap(antenna2 -> supplier.get()
+                                    .mapToObj(n -> new AntiNode(
+                                            antenna2.add(antenna2.difference(antenna1).multiply(n)).location,
+                                            frequency
+                                    ))
+                                    .takeWhile(antiNode -> antiNode.isInBounds(width, height))
+                            )
+                    );
+        }
 
-        return new Point(dx, dy);
+        private static Stream<FrequencyContainer> sortByFrequency(Stream<Antenna> antennas) {
+            return antennas
+                    .collect(Collectors.groupingBy(
+                            Antenna::frequency,
+                            Collectors.mapping(Function.identity(), Collectors.toSet())
+                    ))
+                    .entrySet().stream()
+                    .map(characterListEntry -> new FrequencyContainer(
+                            characterListEntry.getKey(),
+                            characterListEntry.getValue()
+                    ));
+        }
+
+        private static Stream<FrequencyContainer> parseFromGrid(List<String> lines) {
+            Stream<Antenna> antennas = Antenna.parseFromGrid(lines);
+            return FrequencyContainer.sortByFrequency(antennas);
+        }
+
+        private static Stream<AntiNode> getProjectedAntiNodes(Stream<FrequencyContainer> frequencyContainers, Supplier<IntStream> supplier, int width, int height) {
+            return frequencyContainers
+                    .flatMap(frequencyContainer -> frequencyContainer.projectAntiNodes(
+                            supplier,
+                            width,
+                            height
+                    ));
+        }
     }
 
-    private static Point add(Point point1, Point point2) {
-        int newX = point2.x + point1.x;
-        int newY = point2.y + point1.y;
+    private record Antenna(Point location, char frequency) {
+        private Antenna add(Antenna antenna) {
+            int newX = this.location.x + antenna.location.x;
+            int newY = this.location.y + antenna.location.y;
 
-        return new Point(newX, newY);
+            return new Antenna(new Point(newX, newY), frequency);
+        }
+
+        private Antenna difference(Antenna antenna) {
+            int newX = this.location.x - antenna.location.x;
+            int newY = this.location.y - antenna.location.y;
+
+            return new Antenna(new Point(newX, newY), frequency);
+        }
+
+        private Antenna multiply(int scalar) {
+            int newX = this.location.x * scalar;
+            int newY = this.location.y * scalar;
+
+            return new Antenna(new Point(newX, newY), frequency);
+        }
+
+        private static Stream<Antenna> parseFromGrid(List<String> lines) {
+            return IntStream.range(0, lines.size())
+                    .mapToObj(stringIndex -> IntStream.range(0, lines.get(stringIndex).length())
+                            .filter(charIndex -> lines.get(stringIndex).charAt(charIndex) != '.')
+                            .mapToObj(charIndex -> new Antenna(
+                                    new Point(charIndex, stringIndex),
+                                    lines.get(stringIndex).charAt(charIndex)
+                            ))
+                    )
+                    .flatMap(Function.identity());
+        }
     }
 
-    private static Point multiply(Point point, int scalar) {
-        int newX = point.x * scalar;
-        int newY = point.y * scalar;
-
-        return new Point(newX, newY);
-    }
-
-    private static boolean isInBounds(Point point, int width, int height) {
-        return point.x >= 0 && point.y >= 0 && point.x < width && point.y < height;
+    private record AntiNode(Point location, char frequency) {
+        private boolean isInBounds(int width, int height) {
+            return location.x >= 0 && location.y >= 0 && location.x < width && location.y < height;
+        }
     }
 }
