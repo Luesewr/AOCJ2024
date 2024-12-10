@@ -1,23 +1,18 @@
 package aocj2024;
 
-import static java.util.Collections.swap;
-
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
-import java.util.function.Function;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 public class Day09 extends Day {
     @Override
     public void part1() {
         Stream<String> lines = getLinesFromFile("day09.txt");
-        FragmentFileSystem fragmentFileSystem = FragmentFileSystem.parse(lines);
+        FileSystem fileSystem = FileSystem.parse(lines, 1);
 
-        fragmentFileSystem.fileRearrangement();
-        long checksum = fragmentFileSystem.checksum();
+        fileSystem.defragment();
+        long checksum = fileSystem.checksum();
 
         System.out.println(checksum);
     }
@@ -25,106 +20,66 @@ public class Day09 extends Day {
     @Override
     public void part2() {
         Stream<String> lines = getLinesFromFile("day09.txt");
-        ChunkFileSystem chunkFileSystem = ChunkFileSystem.parse(lines);
+        FileSystem fileSystem = FileSystem.parse(lines, Integer.MAX_VALUE);
 
-        chunkFileSystem.defragment();
-        long checksum = chunkFileSystem.checksum();
+        fileSystem.defragment();
+        long checksum = fileSystem.checksum();
 
         System.out.println(checksum);
     }
 
-    private record FileFragment(Integer fileID) {
-    }
+    private record FileFragment(int fileID, int startIndex, int size) { }
 
-    private record FileChunk(int fileID, int startIndex, int size) { }
-
-    private record FragmentFileSystem(List<FileFragment> fragments) {
-        private void fileRearrangement() {
-            int startIndex = 0;
-            int endIndex = fragments().size() - 1;
-
-            while (startIndex < endIndex) {
-                if ((fragments.get(startIndex).fileID != null) || (fragments.get(endIndex).fileID == null)) {
-                    while (fragments.get(startIndex).fileID != null) startIndex++;
-                    while (fragments.get(endIndex).fileID == null) endIndex--;
-                } else {
-                    swap(fragments, startIndex, endIndex);
-                    startIndex++;
-                    endIndex--;
-                }
-            }
-        }
-
-        private long checksum() {
-            long checksum = 0;
-
-            for (long i = 0, fragmentsSize = fragments.size(); i < fragmentsSize; i++) {
-                FileFragment fileFragment = fragments.get((int) i);
-
-                if (fileFragment.fileID != null) {
-                    checksum += i * fileFragment.fileID;
-                }
-            }
-
-            return checksum;
-        }
-
-        public static FragmentFileSystem parse(Stream<String> lines) {
-            String line = lines.collect(Collectors.joining());
-
-            List<FileFragment> fileFragments = IntStream.range(0, line.length())
-                    .mapToObj(n -> IntStream.range(0, Integer.parseInt(String.valueOf(line.charAt(n))))
-                            .mapToObj(value -> n % 2 == 0 ? new FileFragment(n / 2) : new FileFragment(null))
-                    )
-                    .flatMap(Function.identity())
-                    .collect(Collectors.toList());
-
-            return new FragmentFileSystem(fileFragments);
-        }
-    }
-
-    private record ChunkFileSystem(List<FileChunk> chunks) {
+    private record FileSystem(List<FileFragment> chunks) {
         private void defragment() {
-            for (int i = chunks.size() - 1; i >= 0; i--) {
-                FileChunk chunkToMove = chunks.get(i);
+            int minEmptyIndex = 0;
 
-                for (int j = 0; j <= i - 1; j++) {
-                    FileChunk chunkCandidate1 = chunks.get(j);
-                    FileChunk chunkCandidate2 = chunks.get(j + 1);
+            for (int i = chunks.size() - 1; i >= 0; i--) {
+                FileFragment chunkToMove = chunks.get(i);
+
+                boolean reachedGap = false;
+
+                for (int j = minEmptyIndex; j <= i - 1; j++) {
+                    FileFragment chunkCandidate1 = chunks.get(j);
+                    FileFragment chunkCandidate2 = chunks.get(j + 1);
 
                     int gapSize = chunkCandidate2.startIndex - (chunkCandidate1.startIndex + chunkCandidate1.size);
 
                     if (chunkToMove.size <= gapSize) {
-                        FileChunk removedChunk = chunks.remove(i);
+                        FileFragment removedChunk = chunks.remove(i);
                         int startIndex = chunkCandidate1.startIndex + chunkCandidate1.size;
-                        FileChunk newChunk = new FileChunk(removedChunk.fileID, startIndex, removedChunk.size);
+                        FileFragment newChunk = new FileFragment(removedChunk.fileID, startIndex, removedChunk.size);
 
                         chunks.add(j + 1, newChunk);
                         i++;
                         break;
                     }
+
+                    if (!reachedGap && gapSize == 0) {
+                        minEmptyIndex = Integer.max(minEmptyIndex, j + 1);
+                    } else {
+                        reachedGap = true;
+                    }
                 }
             }
-
-            chunks.sort(Comparator.comparingInt(FileChunk::startIndex));
         }
 
         private long checksum() {
             long checksum = 0;
 
-            for (FileChunk fileChunk : chunks) {
-                for (long j = 0; j < fileChunk.size; j++) {
-                    checksum += (fileChunk.startIndex + j) * fileChunk.fileID;
+            for (FileFragment fileFragment : chunks) {
+                for (long j = 0; j < fileFragment.size; j++) {
+                    checksum += (fileFragment.startIndex + j) * fileFragment.fileID;
                 }
             }
 
             return checksum;
         }
 
-        private static ChunkFileSystem parse(Stream<String> lines) {
+        private static FileSystem parse(Stream<String> lines, int maxChunkSize) {
             String line = lines.collect(Collectors.joining());
 
-            List<FileChunk> fileChunks = new ArrayList<>();
+            List<FileFragment> fileFragments = new ArrayList<>();
 
             int startIndex = 0;
 
@@ -132,14 +87,17 @@ public class Day09 extends Day {
                 int size = Integer.parseInt(String.valueOf(line.charAt(i)));
 
                 if (i % 2 == 0) {
-                    FileChunk fileChunk = new FileChunk(i / 2, startIndex, size);
-                    fileChunks.add(fileChunk);
+                    for (int j = 0; j < size; j += maxChunkSize) {
+                        int chunkSize = Integer.min(size, maxChunkSize);
+                        FileFragment fileFragment = new FileFragment(i / 2, startIndex + j, chunkSize);
+                        fileFragments.add(fileFragment);
+                    }
                 }
 
                 startIndex += size;
             }
 
-            return new ChunkFileSystem(fileChunks);
+            return new FileSystem(fileFragments);
         }
     }
 }
