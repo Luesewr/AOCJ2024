@@ -7,10 +7,10 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-public class Day3 extends Day {
+public class Day03 extends Day {
     @Override
     public void part1() {
-        String input = getLinesFromFile("day3.txt")
+        String input = getLinesFromFile("day03.txt")
                 .collect(Collectors.joining());
 
         MulInstruction.disabled = false;
@@ -26,7 +26,7 @@ public class Day3 extends Day {
 
     @Override
     public void part2() {
-        String input = getLinesFromFile("day3.txt")
+        String input = getLinesFromFile("day03.txt")
                 .collect(Collectors.joining());
 
         MulInstruction.disabled = false;

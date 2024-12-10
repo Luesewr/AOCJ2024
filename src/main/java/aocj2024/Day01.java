@@ -7,10 +7,10 @@ import java.util.stream.Stream;
 import org.apache.commons.lang3.tuple.Pair;
 import org.jetbrains.annotations.NotNull;
 
-public class Day1 extends Day {
+public class Day01 extends Day {
     @Override
     public void part1() {
-        Stream<String> lines = getLinesFromFile("day1.txt");
+        Stream<String> lines = getLinesFromFile("day01.txt");
 
         Pair<LocationList, LocationList> lists = LocationList.parseDoubleLocationList(lines);
 
@@ -21,7 +21,7 @@ public class Day1 extends Day {
 
     @Override
     public void part2() {
-        Stream<String> lines = getLinesFromFile("day1.txt");
+        Stream<String> lines = getLinesFromFile("day01.txt");
 
         Pair<LocationList, LocationList> lists = LocationList.parseDoubleLocationList(lines);
 

@@ -3,10 +3,10 @@ package aocj2024;
 import java.util.Arrays;
 import java.util.List;
 
-public class Day2 extends Day {
+public class Day02 extends Day {
     @Override
     public void part1() {
-        long safeReports = getLinesFromFile("day2.txt")
+        long safeReports = getLinesFromFile("day02.txt")
                 .map(Report::parseReport)
                 .filter(Report::isSafe)
                 .count();
@@ -16,7 +16,7 @@ public class Day2 extends Day {
 
     @Override
     public void part2() {
-        long safeReports = getLinesFromFile("day2.txt")
+        long safeReports = getLinesFromFile("day02.txt")
                 .map(Report::parseReport)
                 .filter(Report::isTolerateSafe)
                 .count();

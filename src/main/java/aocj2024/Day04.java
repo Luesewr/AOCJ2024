@@ -7,12 +7,11 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-import java.util.stream.Stream;
 
-public class Day4 extends Day {
+public class Day04 extends Day {
     @Override
     public void part1() {
-        List<String> lines = getLinesFromFile("day4.txt").toList();
+        List<String> lines = getLinesFromFile("day04.txt").toList();
         Grid grid = new Grid(lines);
 
         int xmasCount = grid.countResults("XMAS", grid.grid);
@@ -22,7 +21,7 @@ public class Day4 extends Day {
 
     @Override
     public void part2() {
-        List<String> lines = getLinesFromFile("day4.txt").toList();
+        List<String> lines = getLinesFromFile("day04.txt").toList();
         Grid grid = new Grid(lines);
 
         int xmasCount = grid.countIntersections("MAS");

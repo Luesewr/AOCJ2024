@@ -8,10 +8,10 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
-public class Day5 extends Day {
+public class Day05 extends Day {
     @Override
     public void part1() {
-        List<String> lines = getLinesFromFile("day5.txt").toList();
+        List<String> lines = getLinesFromFile("day05.txt").toList();
 
         List<PageList> pageLists = PageList.setupPageListsFromLines(lines);
 
@@ -25,7 +25,7 @@ public class Day5 extends Day {
 
     @Override
     public void part2() {
-        List<String> lines = getLinesFromFile("day5.txt").toList();
+        List<String> lines = getLinesFromFile("day05.txt").toList();
 
         List<PageList> pageLists = PageList.setupPageListsFromLines(lines);
 

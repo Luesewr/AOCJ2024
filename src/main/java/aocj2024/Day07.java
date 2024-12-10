@@ -4,10 +4,10 @@ import java.util.Arrays;
 import java.util.List;
 import org.apache.commons.lang3.function.TriFunction;
 
-public class Day7 extends Day {
+public class Day07 extends Day {
     @Override
     public void part1() {
-        List<String> lines = getLinesFromFile("day7.txt").toList();
+        List<String> lines = getLinesFromFile("day07.txt").toList();
         List<Equation> equations = Equation.parseEquations(lines);
 
         long calibratedTotal = Equation.sumCalibrated(equations, Equation::evaluateOptions);
@@ -17,7 +17,7 @@ public class Day7 extends Day {
 
     @Override
     public void part2() {
-        List<String> lines = getLinesFromFile("day7.txt").toList();
+        List<String> lines = getLinesFromFile("day07.txt").toList();
         List<Equation> equations = Equation.parseEquations(lines);
 
         long calibratedTotal = Equation.sumCalibrated(equations, Equation::evaluateOptionsWithConcat);

@@ -10,10 +10,10 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
-public class Day9 extends Day {
+public class Day09 extends Day {
     @Override
     public void part1() {
-        Stream<String> lines = getLinesFromFile("day9.txt");
+        Stream<String> lines = getLinesFromFile("day09.txt");
         FragmentFileSystem fragmentFileSystem = FragmentFileSystem.parse(lines);
 
         fragmentFileSystem.fileRearrangement();
@@ -24,7 +24,7 @@ public class Day9 extends Day {
 
     @Override
     public void part2() {
-        Stream<String> lines = getLinesFromFile("day9.txt");
+        Stream<String> lines = getLinesFromFile("day09.txt");
         ChunkFileSystem chunkFileSystem = ChunkFileSystem.parse(lines);
 
         chunkFileSystem.defragment();

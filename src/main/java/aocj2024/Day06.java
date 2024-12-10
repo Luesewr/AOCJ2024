@@ -11,10 +11,10 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.apache.commons.lang3.tuple.Pair;
 
-public class Day6 extends Day {
+public class Day06 extends Day {
     @Override
     public void part1() {
-        List<String> lines = getLinesFromFile("day6.txt").toList();
+        List<String> lines = getLinesFromFile("day06.txt").toList();
 
         Laboratory laboratory = new Laboratory(lines);
         Point startingLocation = laboratory.findStartingLocation();
@@ -30,7 +30,7 @@ public class Day6 extends Day {
 
     @Override
     public void part2() {
-        List<String> lines = getLinesFromFile("day6.txt").toList();
+        List<String> lines = getLinesFromFile("day06.txt").toList();
 
         Laboratory laboratory = new Laboratory(lines);
         Point startingLocation = laboratory.findStartingLocation();

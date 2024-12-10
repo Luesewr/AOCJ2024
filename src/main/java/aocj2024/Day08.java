@@ -9,10 +9,10 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
-public class Day8 extends Day {
+public class Day08 extends Day {
     @Override
     public void part1() {
-        List<String> lines = getLinesFromFile("day8.txt").toList();
+        List<String> lines = getLinesFromFile("day08.txt").toList();
         int width = lines.get(0).length(), height = lines.size();
 
         Stream<FrequencyContainer> antennaFrequencyContainers = FrequencyContainer.parseFromGrid(lines);
@@ -31,7 +31,7 @@ public class Day8 extends Day {
 
     @Override
     public void part2() {
-        List<String> lines = getLinesFromFile("day8.txt").toList();
+        List<String> lines = getLinesFromFile("day08.txt").toList();
         int width = lines.get(0).length(), height = lines.size();
 
         Stream<FrequencyContainer> antennaFrequencyContainers = FrequencyContainer.parseFromGrid(lines);
