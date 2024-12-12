@@ -1,6 +1,9 @@
 src/main/resources/*
 !src/main/resources/.gitkeep
 
+.idea/
+target/
+
 # Compiled class file
 *.class
 
