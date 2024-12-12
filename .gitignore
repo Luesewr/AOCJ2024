@@ -1,4 +1,5 @@
-src/main/resources/
+src/main/resources/*
+!src/main/resources/.gitkeep
 
 # Compiled class file
 *.class
