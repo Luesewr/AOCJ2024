@@ -2,12 +2,9 @@ package aocj2024;
 
 import java.awt.Point;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 public class Day14 extends Day {
     @Override
@@ -46,15 +43,15 @@ public class Day14 extends Day {
         System.out.println(lowestVarianceTimestamp);
     }
 
-    private record Area(Set<SecurityRobot> robots, int width, int height) {
+    private record Area(List<SecurityRobot> robots, int width, int height) {
         private Area getPredictedArea(int seconds) {
             return new Area(getPredictedRobots(seconds), width, height);
         }
 
-        private Set<SecurityRobot> getPredictedRobots(int seconds) {
+        private List<SecurityRobot> getPredictedRobots(int seconds) {
             return robots.stream()
                     .map(robot -> robot.predict(seconds, width, height))
-                    .collect(Collectors.toSet());
+                    .toList();
         }
 
         private double variance() {
@@ -73,11 +70,11 @@ public class Day14 extends Day {
             return variance / (robots.size() - 1);
         }
 
-        private List<Set<SecurityRobot>> getQuadrants() {
-            List<Set<SecurityRobot>> quadrants = new ArrayList<>(4);
+        private List<List<SecurityRobot>> getQuadrants() {
+            List<List<SecurityRobot>> quadrants = new ArrayList<>(4);
 
             for (int i = 0; i < 4; i++) {
-                quadrants.add(new HashSet<>());
+                quadrants.add(new ArrayList<>());
             }
 
             robots.forEach(robot -> {
@@ -90,15 +87,15 @@ public class Day14 extends Day {
         }
 
         private int getSafetyFactor() {
-            List<Set<SecurityRobot>> quadrants = getQuadrants();
+            List<List<SecurityRobot>> quadrants = getQuadrants();
 
             return quadrants.stream()
-                    .map(Set::size)
+                    .map(List::size)
                     .reduce(1, (left, right) -> left * right);
         }
 
         private static Area parse(List<String> lines, int width, int height) {
-            Set<SecurityRobot> robots = SecurityRobot.parseRobots(lines);
+            List<SecurityRobot> robots = SecurityRobot.parseRobots(lines);
 
             return new Area(robots, width, height);
         }
@@ -114,10 +111,10 @@ public class Day14 extends Day {
             return new SecurityRobot(new Point(newX, newY), velocity.getLocation());
         }
 
-        private static Set<SecurityRobot> parseRobots(List<String> lines) {
+        private static List<SecurityRobot> parseRobots(List<String> lines) {
             return lines.stream()
                     .map(SecurityRobot::parse)
-                    .collect(Collectors.toSet());
+                    .toList();
         }
 
         private static SecurityRobot parse(String line) {
