@@ -2,7 +2,6 @@ package aocj2024;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.regex.Matcher;
@@ -12,7 +11,7 @@ import java.util.stream.Collectors;
 public class Day17 extends Day {
     @Override
     public void part1() {
-        List<String> lines = getLinesFromFile("day17_sample.txt").toList();
+        List<String> lines = getLinesFromFile("day17.txt").toList();
 
         Program program = Program.parse(lines.get(4));
         ProgramState initialState = ProgramState.parse(program, lines.subList(0, 3));
@@ -32,71 +31,12 @@ public class Day17 extends Day {
                 .map(Long::parseLong)
                 .collect(Collectors.toList());
 
-//        Collections.reverse(originalProgram);
-
         Program program = Program.parse(lines.get(4));
         ProgramState initialState = ProgramState.parse(program, lines.subList(0, 3));
 
         Long result = program.getMatchingOutput(initialState, new ArrayList<>(originalProgram.size()), originalProgram);
 
         System.out.println(result);
-
-//        List<Long> originalProgram = Arrays.stream(lines.get(4)
-//                        .substring(9)
-//                        .split(","))
-//                .map(Long::parseLong)
-//                .toList();
-//
-//        Program program = Program.parse(lines.get(4));
-//        ProgramState initialState = ProgramState.parse(program, lines.subList(0, 3));
-//
-//        List<Long> correctTries = new ArrayList<>();
-//
-//        for (int i = 0; i < originalProgram.size(); i++) {
-//            long offset = 0;
-//            long base = 1;
-//            System.out.println("correctTries = " + correctTries);
-//
-//            for (int j = 0, mult = 8; j < correctTries.size(); j++, mult *= 8) {
-//                offset += correctTries.get(j) * mult;
-//                base *= 8;
-//            }
-//
-//            System.out.println("offset = " + offset);
-//
-//            for (long j = 0; j < 8; j++) {
-//                long A = base + offset + j;
-//                System.out.println("A = " + A);
-//
-//                List<Long> output = program.execute(initialState.withA(A)).output;
-//                System.out.println(output);
-//
-//                boolean valid = true;
-//
-//                for (int k = 0; k < output.size(); k++) {
-//                    System.out.println(output.get(output.size() - 1 - k) + ", " + originalProgram.get(originalProgram.size() - 1 - k));
-//                    if (!Objects.equals(output.get(output.size() - 1 - k), originalProgram.get(originalProgram.size() - 1 - k))) {
-//                        valid = false;
-//                        System.out.println("invalid");
-//                        break;
-//                    }
-//                }
-//
-//                if (valid) {
-//                    correctTries.add(0, j);
-//                    break;
-//                }
-//            }
-//        }
-//
-//        long A = 0;
-//
-//        while (A < 1000) {
-//            System.out.println(A + ": " + program.execute(initialState.withA(A)).output);
-//            A++;
-//        }
-//
-//        System.out.println(correctTries);
     }
 
     private record Program(List<Instruction> instructionSet) {
@@ -142,38 +82,25 @@ public class Day17 extends Day {
 
         private Long getMatchingOutput(ProgramState initialState, List<Long> currentMatch, List<Long> outputToMatch) {
             long baseOffset = power(8, currentMatch.size());
-            long customOffset = 0;
+            long currentOffset = 0;
 
-            for (int j = currentMatch.size() - 1, mult = 8; j >= 0; j--, mult *= 8) {
-                customOffset += currentMatch.get(j) * mult;
+            for (long j = currentMatch.size() - 1, mult = 8; j >= 0; j--, mult *= 8) {
+                currentOffset += currentMatch.get((int) j) * mult;
             }
 
-            for (long j = 0; j < 8; j++) {
-                long A = baseOffset + customOffset + j;
-                System.out.println("A = " + A);
+            for (long digitOffset = 0; digitOffset < 8; digitOffset++) {
+                long A = baseOffset + currentOffset + digitOffset;
 
                 List<Long> output = execute(initialState.withA(A)).output;
-                System.out.println(output);
 
-                boolean valid = true;
-
-                for (int k = 0; k < output.size(); k++) {
-                    if (!Objects.equals(output.get(output.size() - 1 - k), outputToMatch.get(outputToMatch.size() - 1 - k))) {
-                        valid = false;
-                        System.out.println("invalid");
-                        break;
-                    }
-                }
-
-                if (valid) {
-                    currentMatch.add(j);
-
-                    if (currentMatch.size() == outputToMatch.size()) {
+                if (Objects.equals(output.get(0), outputToMatch.get(outputToMatch.size() - output.size()))) {
+                    if (output.equals(outputToMatch)) {
                         return A;
                     }
 
-                    Long result = getMatchingOutput(initialState, currentMatch, outputToMatch);
+                    currentMatch.add(digitOffset);
 
+                    Long result = getMatchingOutput(initialState, currentMatch, outputToMatch);
                     if (result != null) return result;
 
                     currentMatch.remove(currentMatch.size() - 1);
