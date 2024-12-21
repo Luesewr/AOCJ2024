@@ -123,18 +123,16 @@ public class Day16 extends Day {
             while (!pq.isEmpty()) {
                 MazeQueueElement element = pq.poll();
 
-                Pair<MazeNode, Point> elementKey = Pair.of(element.node, element.direction);
-                int currentBestDistance = distances.computeIfAbsent(elementKey, key -> Integer.MAX_VALUE);
+                int currentBestDistance = element.totalScore;
+
+                if (currentBestDistance > bestScore) continue;
 
                 if (element.node.equals(end)) {
                     if (currentBestDistance < bestScore) {
-                        bestPaths.clear();
                         bestScore = currentBestDistance;
                     }
 
-                    if (currentBestDistance == bestScore) {
-                        bestPaths.add(element);
-                    }
+                    bestPaths.add(element);
 
                     continue;
                 }
