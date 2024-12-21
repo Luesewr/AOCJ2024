@@ -1,6 +1,7 @@
 package aocj2024;
 
 import java.awt.Point;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -10,11 +11,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.PriorityQueue;
 import java.util.Set;
-import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-import org.apache.commons.lang3.tuple.Pair;
-
-// 1455 too low
 
 public class Day20 extends Day {
     @Override
@@ -26,8 +23,8 @@ public class Day20 extends Day {
 
     @Override
     public void part2() {
-        Track track = Track.parse(getLinesFromFile("day20_sample.txt").toList());
-        long lowestScore = track.getCheatingLocationCount(20, 50);
+        Track track = Track.parse(getLinesFromFile("day20.txt").toList());
+        long lowestScore = track.getCheatingLocationCount(20, 100);
         System.out.println(lowestScore);
     }
 
@@ -94,22 +91,9 @@ public class Day20 extends Day {
         private long getCheatingLocationCount(int maxCheatingLocations, int minimumTimeSave) {
             Map<TrackNode, Integer> endDistanceMap = getDistanceMap(end);
             Map<TrackNode, Integer> startDistanceMap = getDistanceMap(start);
-            Map<Set<TrackNode>, Integer> cheatingTimeSaves = getCheatingTimeSaves(startDistanceMap, endDistanceMap, maxCheatingLocations, minimumTimeSave);
-//            Map<Set<TrackNode>, Integer> bestPaths = getTravelMap(maxCheatingLocations);
-//            System.out.println(cheatingTimeSaves);
-//            System.out.println(cheatingTimeSaves.values().stream()
-//                    .collect(Collectors.groupingBy(
-//                            entry -> entry, // Group by the map entry
-//                            Collectors.counting() // Count occurrences
-//                    )));
-//            bestPaths.remove(Set.of());
-            int regularDistance = endDistanceMap.get(start);
-//
-            return cheatingTimeSaves.values().stream()
-                    .map(newTime -> regularDistance - newTime)
-//                    .peek(System.out::println)
-                    .filter(timeSaved -> timeSaved >= minimumTimeSave)
-                    .count();
+            List<Integer> cheatingTimeSaves = getCheatingTimeSaves(startDistanceMap, endDistanceMap, maxCheatingLocations, minimumTimeSave);
+
+            return cheatingTimeSaves.size();
         }
 
         private Map<TrackNode, Integer> getDistanceMap(TrackNode node) {
@@ -145,56 +129,23 @@ public class Day20 extends Day {
             return distances;
         }
 
-        private Map<Set<TrackNode>, Integer> getCheatingTimeSaves(Map<TrackNode, Integer> startDistanceMap, Map<TrackNode, Integer> endDistanceMap, int maxCheatingLocations, int minimumTimeSave) {
-            Map<Pair<TrackNode, Set<TrackNode>>, Integer> distances = new HashMap<>();
-
-            PriorityQueue<TrackQueueElement> pq = new PriorityQueue<>(Comparator.comparingInt(TrackQueueElement::totalScore));
-
+        private List<Integer> getCheatingTimeSaves(Map<TrackNode, Integer> startDistanceMap, Map<TrackNode, Integer> endDistanceMap, int maxCheatingLocations, int minimumTimeSave) {
             int establishedDistance = endDistanceMap.get(start);
             int aimDistance = establishedDistance - minimumTimeSave;
 
-            pq.add(new TrackQueueElement(start, 0, Set.of()));
-            distances.put(Pair.of(start, Set.of()), 0);
+            List<Integer> shortcutDistances = new ArrayList<>();
 
-            Map<Set<TrackNode>, Integer> bestScores = new HashMap<>();
-
-            while (!pq.isEmpty()) {
-                TrackQueueElement element = pq.poll();
-
-                int currentDistance = element.totalScore;
-
-                if (!element.cheatingLocations.isEmpty() && endDistanceMap.containsKey(element.node)) {
-                    int cheatDistance = currentDistance + endDistanceMap.get(element.node);
-
-                    if (cheatDistance > aimDistance) continue;
-
-                    bestScores.put(element.cheatingLocations, currentDistance + endDistanceMap.get(element.node));
-                }
-
-                for (TrackNodeConnection connection : element.node.connections) {
-                    int cost = 1;
-
-                    int totalCost = currentDistance + cost;
-
-                    if (totalCost < distances.getOrDefault(Pair.of(connection.end, element.cheatingLocations), Integer.MAX_VALUE)) {
-                        Set<TrackNode> newCheatingLocations = element.cheatingLocations;
-
-                        if (element.node.type == '#' || !element.cheatingLocations.isEmpty()) {
-                            if (element.cheatingLocations.size() + 1 >= maxCheatingLocations) {
-                                continue;
-                            }
-
-                            newCheatingLocations = new HashSet<>(element.cheatingLocations);
-                            newCheatingLocations.add(element.node);
-                        }
-                        distances.put(Pair.of(connection.end, newCheatingLocations), totalCost);
-
-                        pq.add(new TrackQueueElement(connection.end, totalCost, newCheatingLocations));
+            startDistanceMap.forEach((startTrackNode, startDistance) -> endDistanceMap.forEach((endTrackNode, endDistance) -> {
+                int shortcutLength = startTrackNode.distance(endTrackNode);
+                if (shortcutLength <= maxCheatingLocations) {
+                    int totalDistance = startDistance + shortcutLength + endDistance;
+                    if (totalDistance <= aimDistance) {
+                        shortcutDistances.add(totalDistance);
                     }
                 }
-            }
+            }));
 
-            return bestScores;
+            return shortcutDistances;
         }
     }
 
@@ -203,6 +154,10 @@ public class Day20 extends Day {
             TrackNodeConnection connection = new TrackNodeConnection(this, trackNode, direction);
 
             connections.add(connection);
+        }
+
+        private int distance(TrackNode other) {
+            return Math.abs(this.location.x - other.location.x) + Math.abs(this.location.y - other.location.y);
         }
 
         @Override
