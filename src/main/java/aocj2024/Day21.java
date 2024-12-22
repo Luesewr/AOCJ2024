@@ -2,14 +2,14 @@ package aocj2024;
 
 import java.awt.Point;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
+import java.util.stream.Collector;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import org.apache.commons.lang3.tuple.Pair;
 
 public class Day21 extends Day {
@@ -17,45 +17,31 @@ public class Day21 extends Day {
     public void part1() {
         List<String> lines = getLinesFromFile("day21.txt").toList();
 
-        Keypad directionPad1 = new DirectionKeypad(null, "Directionpad1");
-        Keypad directionPad2 = new DirectionKeypad(directionPad1, "Directionpad2");
-        Keypad directionPad3 = new DirectionKeypad(directionPad2, "Directionpad2");
-        Keypad numberKeypad = new NumberKeypad(directionPad3, "Numberpad");
+        Keypad numberKeypad = Keypad.getKeypadStack(2);
 
-        long totalComplexities = 0;
-
-        for (String sequence : lines) {
-            long sequenceLength = 0;
-
-            char prevButtonValue = 'A';
-
-            for (int i = 0; i < sequence.length(); i++) {
-                char buttonValue = sequence.charAt(i);
-
-                List<Character> buttonPresses = numberKeypad.pressButton(prevButtonValue, buttonValue);
-                sequenceLength += buttonPresses.size();
-
-                prevButtonValue = buttonValue;
-            }
-
-            totalComplexities += sequenceLength * Integer.parseInt(sequence.substring(0, sequence.length() - 1));
-        }
+        long totalComplexities = lines.stream().mapToLong(numberKeypad::getComplexity).sum();
 
         System.out.println(totalComplexities);
     }
 
     @Override
     public void part2() {
+        List<String> lines = getLinesFromFile("day21.txt").toList();
 
+        Keypad numberKeypad = Keypad.getKeypadStack(25);
+
+        long totalComplexities = lines.stream().mapToLong(numberKeypad::getComplexity).sum();
+
+        System.out.println(totalComplexities);
     }
 
     private static abstract class Keypad {
         final Map<Character, KeypadButton> buttons;
         final Set<Point> buttonLocations;
+        final Map<String, Long> knownResults;
         final Keypad input;
-        final String name;
 
-        private Keypad(Keypad input, String name) {
+        private Keypad(Keypad input) {
             Set<KeypadButton> buttonSet = getButtonSet();
 
             this.buttons = buttonSet.stream()
@@ -64,24 +50,23 @@ public class Day21 extends Day {
                             Function.identity()
                     ));
             this.buttonLocations = buttonSet.stream().map(KeypadButton::location).collect(Collectors.toSet());
+            this.knownResults = new HashMap<>();
             this.input = input;
-            this.name = name;
         }
 
-        private List<Character> pressButton(char fromButtonValue, char toButtonValue) {
+        private long pressButton(char fromButtonValue, char toButtonValue) {
             return pressButton(fromButtonValue, toButtonValue, 1);
         }
 
-        private List<Character> pressButton(char fromButtonValue, Pair<Character, Integer> toButtonPair) {
-            return pressButton(fromButtonValue, toButtonPair.getLeft(), toButtonPair.getRight());
-        }
-
-        private List<Character> pressButton(char fromButtonValue, char toButtonValue, int amount) {
-            if (amount == 0) return List.of();
+        private long pressButton(char fromButtonValue, char toButtonValue, int amount) {
+            if (amount == 0) return 0;
             if (input == null) {
-//                System.out.println("Pressed " + toButtonValue + " " + amount + " times");
-                return Collections.nCopies(amount, toButtonValue);
+                return amount;
             }
+
+            String lookupKey = String.format("%c:%c:%d", fromButtonValue, toButtonValue, amount);
+
+            if (knownResults.containsKey(lookupKey)) return knownResults.get(lookupKey);
 
             KeypadButton fromButton = buttons.get(fromButtonValue);
             KeypadButton toButton = buttons.get(toButtonValue);
@@ -102,78 +87,92 @@ public class Day21 extends Day {
                 buttonsForTarget.add(Pair.of('v', Math.abs(dy)));
             }
 
-            List<Character> fewestButtons = null;
+            long fewestButtons = Long.MAX_VALUE;
 
             boolean forwardsPossible = buttonLocations.contains(new Point(toButton.location.x, fromButton.location.y));
             boolean backwardsPossible = buttonLocations.contains(new Point(fromButton.location.x, toButton.location.y));
 
             if (forwardsPossible) {
-                List<Character> forwards = new ArrayList<>();
-                char currentButton = 'A';
-
-                Pair<Character, Integer> firstButtonAmount = buttonsForTarget.get(0);
-                char firstButton = firstButtonAmount.getLeft();
-                int firstAmount = firstButtonAmount.getRight();
-
-                if (firstAmount > 0) {
-                    forwards.addAll(input.pressButton(currentButton, firstButtonAmount));
-                    currentButton = firstButton;
-                }
-
-                Pair<Character, Integer> secondButtonAmount = buttonsForTarget.get(1);
-                char secondButton = secondButtonAmount.getLeft();
-                int secondAmount = secondButtonAmount.getRight();
-
-                if (secondAmount > 0) {
-                    forwards.addAll(input.pressButton(currentButton, secondButtonAmount));
-                    currentButton = secondButton;
-                }
-
-                forwards.addAll(input.pressButton(currentButton, 'A', amount));
-
-                fewestButtons = forwards;
+                fewestButtons = getInstructionOrderLength(amount, buttonsForTarget);
             }
+
+            Collections.reverse(buttonsForTarget);
 
             if (backwardsPossible) {
-                List<Character> backwards = new ArrayList<>();
-                char currentButton = 'A';
-
-                Pair<Character, Integer> firstButtonAmount = buttonsForTarget.get(1);
-                char firstButton = firstButtonAmount.getLeft();
-                int firstAmount = firstButtonAmount.getRight();
-
-                if (firstAmount > 0) {
-                    backwards.addAll(input.pressButton(currentButton, firstButtonAmount));
-                    currentButton = firstButton;
-                }
-
-                Pair<Character, Integer> secondButtonAmount = buttonsForTarget.get(0);
-                char secondButton = secondButtonAmount.getLeft();
-                int secondAmount = secondButtonAmount.getRight();
-
-                if (secondAmount > 0) {
-                    backwards.addAll(input.pressButton(currentButton, secondButtonAmount));
-                    currentButton = secondButton;
-                }
-
-                backwards.addAll(input.pressButton(currentButton, 'A', amount));
-
-                if (fewestButtons == null || backwards.size() < fewestButtons.size()) {
-                    fewestButtons = backwards;
-                }
+                fewestButtons = Math.min(fewestButtons, getInstructionOrderLength(amount, buttonsForTarget));
             }
 
-//            System.out.println("pressed " + toButtonValue + " on " + name + " at " + toButton.location + " from " + fromButtonValue + " at " + fromButton.location);
+            knownResults.put(lookupKey, fewestButtons);
 
             return fewestButtons;
         }
 
+        private long getInstructionOrderLength(int amount, List<Pair<Character, Integer>> instructionOrder) {
+            long pressCount = 0;
+            char currentButton = 'A';
+
+            for (Pair<Character, Integer> buttonAmountPair : instructionOrder) {
+                char buttonValue = buttonAmountPair.getLeft();
+                int buttonAmount = buttonAmountPair.getRight();
+
+                if (buttonAmount > 0) {
+                    pressCount += input.pressButton(currentButton, buttonValue, buttonAmount);
+                    currentButton = buttonValue;
+                }
+            }
+
+            pressCount += input.pressButton(currentButton, 'A', amount);
+
+            return pressCount;
+        }
+
+        private long getComplexity(String sequence) {
+            long sequenceLength = 0;
+
+            char prevButtonValue = 'A';
+
+            for (int i = 0; i < sequence.length(); i++) {
+                char buttonValue = sequence.charAt(i);
+
+                long buttonPresses = pressButton(prevButtonValue, buttonValue);
+                sequenceLength += buttonPresses;
+
+                prevButtonValue = buttonValue;
+            }
+
+            String sequenceNumberPart = sequence.chars()
+                    .mapToObj(c -> (char) c)
+                    .filter(Character::isDigit)
+                    .collect(
+                            Collector.of(
+                                    StringBuilder::new,
+                                    StringBuilder::append,
+                                    StringBuilder::append,
+                                    StringBuilder::toString
+                            )
+                    );
+
+            int sequenceNumberValue = Integer.parseInt(sequenceNumberPart);
+
+            return sequenceLength * sequenceNumberValue;
+        }
+
         abstract Set<KeypadButton> getButtonSet();
+
+        private static Keypad getKeypadStack(int robots) {
+            Keypad previousKeypad = new DirectionKeypad(null);
+
+            for (int i = 0; i < robots; i++) {
+                previousKeypad = new DirectionKeypad(previousKeypad);
+            }
+
+            return new NumberKeypad(previousKeypad);
+        }
     }
 
-    private class NumberKeypad extends Keypad {
-        private NumberKeypad(Keypad input, String name) {
-            super(input, name);
+    private static class NumberKeypad extends Keypad {
+        private NumberKeypad(Keypad input) {
+            super(input);
         }
 
         @Override
@@ -194,9 +193,9 @@ public class Day21 extends Day {
         }
     }
 
-    private class DirectionKeypad extends Keypad {
-        private DirectionKeypad(Keypad input, String name) {
-            super(input, name);
+    private static class DirectionKeypad extends Keypad {
+        private DirectionKeypad(Keypad input) {
+            super(input);
         }
 
         @Override
