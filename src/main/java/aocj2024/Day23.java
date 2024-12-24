@@ -1,5 +1,6 @@
 package aocj2024;
 
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -16,20 +17,9 @@ public class Day23 extends Day {
     public void part1() {
         List<String> lines = getLinesFromFile("day23.txt").toList();
 
-        Map<String, Computer> computerMap = new HashMap<>();
+        Collection<Computer> computers = Computer.parse(lines);
 
-        lines.stream()
-                .flatMap(string -> {
-                    String[] elements = string.split("-");
-                    return Stream.of(Pair.of(elements[0], elements[1]), Pair.of(elements[1], elements[0]));
-                })
-                .forEach(connectionPair ->
-                        computerMap.computeIfAbsent(connectionPair.getLeft(), Computer::new).addConnection(
-                                computerMap.computeIfAbsent(connectionPair.getRight(), Computer::new)
-                        )
-                );
-
-        long interconnectedCount = computerMap.values().stream()
+        long interconnectedCount = computers.stream()
                 .filter(computer1 -> computer1.name.startsWith("t"))
                 .flatMap(computer1 -> computer1.connections.stream()
                         .map(computer2 -> {
@@ -52,20 +42,7 @@ public class Day23 extends Day {
     public void part2() {
         List<String> lines = getLinesFromFile("day23.txt").toList();
 
-        Map<String, Computer> computerMap = new HashMap<>();
-
-        lines.stream()
-                .flatMap(string -> {
-                    String[] elements = string.split("-");
-                    return Stream.of(Pair.of(elements[0], elements[1]), Pair.of(elements[1], elements[0]));
-                })
-                .forEach(connectionPair ->
-                        computerMap.computeIfAbsent(connectionPair.getLeft(), Computer::new).addConnection(
-                                computerMap.computeIfAbsent(connectionPair.getRight(), Computer::new)
-                        )
-                );
-
-        Set<Computer> computers = new HashSet<>(computerMap.values());
+        Set<Computer> computers = new HashSet<>(Computer.parse(lines));
 
         Set<Computer> biggestConnected = computers.stream()
                 .flatMap(computer -> {
@@ -100,19 +77,17 @@ public class Day23 extends Day {
         }
 
         private Set<Set<Computer>> getGroups(Set<Set<Computer>> groups, Set<Computer> group, Set<Computer> sharing) {
-            if (!sharing.contains(this)) return Set.of();
             if (groups.contains(group)) return Set.of();
 
             Set<Computer> newSharing = new HashSet<>(sharing);
             newSharing.retainAll(getSurrounding());
 
-            if (!newSharing.containsAll(group)) {
+            if (group.size() > newSharing.size() || !newSharing.containsAll(group)) {
                 return Set.of();
             }
 
-            groups.add(group);
-
             for (Computer connection : connections) {
+                if (!sharing.contains(connection)) continue;
                 if (group.contains(connection)) continue;
 
                 Set<Computer> newGroup = new HashSet<>(group);
@@ -120,10 +95,41 @@ public class Day23 extends Day {
 
                 Set<Set<Computer>> subGroups = connection.getGroups(groups, newGroup, newSharing);
 
-                groups.addAll(subGroups);
+                int largestGroup = subGroups.stream().map(Set::size).max(Integer::compareTo).orElse(0);
+
+                Set<Set<Computer>> largestGroups = subGroups.stream()
+                        .filter(computers -> computers.size() == largestGroup)
+                        .collect(Collectors.toSet());
+
+                groups.addAll(largestGroups);
             }
 
-            return groups;
+            if (groups.isEmpty()) {
+                groups.add(group);
+            }
+
+            int largestGroup = groups.stream().map(Set::size).max(Integer::compareTo).orElse(0);
+
+            return groups.stream()
+                    .filter(computers -> computers.size() == largestGroup)
+                    .collect(Collectors.toSet());
+        }
+
+        private static Collection<Computer> parse(List<String> lines) {
+            Map<String, Computer> computerMap = new HashMap<>();
+
+            lines.stream()
+                    .flatMap(string -> {
+                        String[] elements = string.split("-");
+                        return Stream.of(Pair.of(elements[0], elements[1]), Pair.of(elements[1], elements[0]));
+                    })
+                    .forEach(connectionPair ->
+                            computerMap.computeIfAbsent(connectionPair.getLeft(), Computer::new).addConnection(
+                                    computerMap.computeIfAbsent(connectionPair.getRight(), Computer::new)
+                            )
+                    );
+
+            return computerMap.values();
         }
 
         @Override
